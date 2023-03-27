@@ -1,6 +1,6 @@
 require('dotenv').config();
 const { token, token2 } = process.env;
-const { Client, Collection, GatewayIntentBits} = require("discord.js");
+const { Client, Collection, GatewayIntentBits, VoiceChannel, EmbedBuilder, PermissionFlagsBits, ChannelType, PermissionsBitField} = require("discord.js");
 const fs = require("fs");
 
 
@@ -49,6 +49,9 @@ const emojis = ['<a:n0:1079759904325251204>',
                 '<a:n9:1079761805028630539>'
               ]
 ; // emojis de 0 a 9
+const CHANNEL_ID = '1085622897202180158';  // ID do canal permanente para criar outros canais privados
+const CATEGORY_ID = '1089179005565022228'; // ID da categoria onde vai ser criado os canais privados
+
 
 client.on('guildMemberAdd', async (member) => {
     // Enviar a mensagem de boas-vindas no canal especificado
@@ -100,42 +103,41 @@ function getEmojiString(count) {
     return count.split('').map(c => emojis[parseInt(c)]).join('');
 }
 
+client.on('voiceStateUpdate', async (oldState, newState) => {
+  // Verifica se o usuário entrou no canal de voz permanente
+  if (newState.channel?.id === CHANNEL_ID) {
+    const guild = newState.guild;
+    const member = guild.members.cache.get(newState.member.user.id);
+    const channelName = `🔒 ${member.displayName}'s channel`; 
+    // Cria o canal de voz privado para o usuário
+    const createdChannel = await guild.channels.create({
+      name: channelName, 
+      type: ChannelType.GuildVoice, 
+      parent: CATEGORY_ID,
+      permissionOverwrites: [
+         // Permissões do usuário que criou o canal
+        {
+          id: guild.roles.everyone,
+          deny: [PermissionsBitField.Flags.ManageChannels]
+        },
+        // Permissões padrão
+        {
+          id: member.id,
+          allow: [PermissionsBitField.Flags.ManageChannels]
+        }
+      ]
+    });
+    // Move o usuário para o canal privado que foi criado
+    await newState.setChannel(createdChannel);
 
-// client.on('voiceStateUpdate', async (oldState, newState) => {
-//   const permanenteChannelId = '1085622897202180158'; // ID do canal de voz permanente
-//   const categoriaId = '1085622730235326496'; // ID da categoria onde os canais temporários serão criados
-
-//   // Verifica se o usuário entrou no canal de voz permanente
-//   if (newState.channel?.id === permanenteChannelId) {
-//     // Cria um canal de voz temporário para o usuário
-//     const temporaryChannel = await newState.guild.channels.create(`${newState.member.displayName}'s Channel`, {
-//       type: 'GUILD_VOICE',
-//       parent: categoriaId,
-//       permissionOverwrites: [
-//         // Permissões do usuário no seu próprio canal de voz temporário
-//         {
-//           id: newState.member.id,
-//           allow: ['MANAGE_CHANNELS', 'MANAGE_ROLES'],
-//           deny: ['CONNECT']
-//         },
-//         // Permissões do canal de voz permanente no canal de voz temporário do usuário
-//         {
-//           id: permanenteChannelId,
-//           deny: ['CONNECT']
-//         },
-//         // Permissões da categoria no canal de voz temporário do usuário
-//         {
-//           id: categoriaId,
-//           deny: ['CONNECT']
-//         }
-//       ]
-//     });
-
-//     // Move o usuário para o seu novo canal de voz temporário
-//     await newState.setChannel(temporaryChannel);
-//   }
-// });
-
+    // Deleta o canal privado quando todos os usuários saírem
+  } else if (oldState.channel?.id !== newState.channel?.id && oldState.channel?.parent?.id === CATEGORY_ID) {
+    const channel = oldState.channel;
+    if (channel.members.size === 0) {
+      channel.delete();
+    }
+  }
+});
 
 
 client.handleEvents();
