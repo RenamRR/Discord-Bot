@@ -1,6 +1,6 @@
 require('dotenv').config();
 const { token, token2 } = process.env;
-const { Client, Collection, GatewayIntentBits, VoiceChannel, EmbedBuilder, PermissionFlagsBits, ChannelType, PermissionsBitField} = require("discord.js");
+const { Client, Collection, GatewayIntentBits, VoiceChannel, EmbedBuilder, PermissionFlagsBits, ChannelType, PermissionsBitField, Activity, ActivityType} = require("discord.js");
 const fs = require("fs");
 
 
@@ -16,6 +16,7 @@ const client = new Client({
             GatewayIntentBits.GuildVoiceStates,
             GatewayIntentBits.GuildMessages,
             GatewayIntentBits.GuildMessageReactions,
+            GatewayIntentBits.GuildPresences,
         ],      
         });
 
@@ -51,6 +52,38 @@ const emojis = ['<a:n0:1079759904325251204>',
 ; // emojis de 0 a 9
 const CHANNEL_ID = '1085622897202180158';  // ID do canal permanente para criar outros canais privados
 const CATEGORY_ID = '1089179005565022228'; // ID da categoria onde vai ser criado os canais privados
+
+// Definindo as atividades do bot
+let status = [
+  {
+    name: 'Ideias!',
+    type: ActivityType.Streaming,
+    url: 'https://www.youtube.com/watch?v=M6Z8E2cI0Q8',
+  },
+  {
+    name: 'Transformando ideias em realidade!',
+  },
+  {
+    name: 'Criado Por RenamRR',
+    type: ActivityType.Watching,
+  },
+  {
+    name: 'Novas Atualizações em breve!',
+    type: ActivityType.Playing,
+  },
+  {
+    name: 'Pepas - Tiesto Remix',
+    type: ActivityType.Listening,
+  },
+]
+
+// Setando atividade no bot
+client.on('ready', () => {
+  setInterval(() => {
+    let random = Math.floor(Math.random() * status.length);
+    client.user.setActivity(status[random]);
+  },10000);
+});
 
 
 client.on('guildMemberAdd', async (member) => {
@@ -89,10 +122,10 @@ client.on('guildMemberRemove', async (member) => {
 
     const topicChannel = member.guild.channels.cache.get(topicChannelId);
     if (topicChannel) {
-     const memberCount = member.guild.memberCount;
-     const emojiCount = getEmojiCount(memberCount);
-     const topic = `Temos um total de ${getEmojiString(emojiCount)} membros. `;
-     topicChannel.setTopic(topic);
+      const memberCount = member.guild.memberCount;
+      const emojiCount = getEmojiCount(memberCount);
+      const topic = `Temos um total de ${getEmojiString(emojiCount)} membros. `;
+      topicChannel.setTopic(topic);
     }
 });
 
@@ -138,7 +171,6 @@ client.on('voiceStateUpdate', async (oldState, newState) => {
     }
   }
 });
-
 
 client.handleEvents();
 client.handleCommands();
